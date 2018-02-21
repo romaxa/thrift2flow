@@ -56,7 +56,7 @@ const allOutput = {};
 for (const thriftPath of thriftPaths) {
   const converter = new ThriftFileConverter(
     thriftPath,
-    name => name + argv.suffix,
+    name => argv.suffix + name,
     argv.enumvalues
   );
   converter
@@ -73,7 +73,7 @@ for (const thriftPath in allOutput) {
   const jsFilename = path.resolve(
     'flow-output',
     relativeThriftPath,
-    `${path.basename(thriftPath, '.thrift')}.js`
+    `${path.basename(thriftPath, '.thrift')}_types.js`
   );
   mkdirp(path.dirname(jsFilename), () =>
     fs.writeFile(jsFilename, allOutput[thriftPath], () => console.log(`Wrote ${jsFilename}`))
