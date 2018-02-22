@@ -39,6 +39,15 @@ const thriftOptions = {
   allowOptionalArguments: true
 };
 
+function hyphensToCamelCase(str) {
+    var arr = str.split(/[_-]/);
+    var newStr = "";
+    for (var i = 1; i < arr.length; i++) {
+        newStr += arr[i].charAt(0).toUpperCase() + arr[i].slice(1);
+    }
+    return arr[0] + newStr;
+}
+
 export class ThriftFileConverter {
   thriftPath: string;
   thrift: Thrift;
@@ -109,7 +118,6 @@ export class ThriftFileConverter {
   generateEnumKeys = (def: Enum) => `{\n${def.definitions.map((d, index) => `"${d.id.name}": ${d.value ? d.value.value : index}`).join(',\n')}};`;
 
   generateEnum = (def: Enum) => {
-    debugger;
     if (this.enumvalues) {
       return `${this.exportPrefix}type ${this.transformName(def.id.name)} = ${this.generateEnumValues(def)};
        ${this.exportPrefix}type ${this.transformName(def.id.name)}Keys = ${this.generateEnumKeys(def)};`;
@@ -128,34 +136,34 @@ export class ThriftFileConverter {
 
   generateStructContents = (def: Struct, name: string, fields: Object) =>
   {
-    debugger;
     return `{
     constructor(args?: {
-      ${Object.values(fields)
+      ${fields ? Object.values(fields)
         .map(
           (f: Base) => {
             return `${f.name}${this.isOptional(f) ? '?' : ''}: ${this.types.convert(f.valueType)}${this.thrift.enums[f.valueType.name] ? 'Values' : ''};`;
           }
         )
-        .join('\n')}
+        .join('\n') : ''}
     }): ${this.transformName(name)};
-    ${Object.values(fields)
+    ${fields ? Object.values(fields)
       .map(
         (f: Base) => {
           return `${f.name}${this.isOptional(f) ? '?' : ''}: ${this.types.convert(f.valueType)}${this.thrift.enums[f.valueType.name] ? 'Values' : ''};`;
         }
 
       )
-      .join('\n')}
+      .join('\n') : ''}
   read: (protocol: mixed) => mixed,
   write: (protocol: mixed) => mixed
 }
       `;
     }
 
-  generateUnion = ({id: {name}, fields}: Struct) =>
-    `${this.exportPrefix}type ${this.transformName(name)} = ${this.generateUnionContents(fields)};`;
-
+  generateUnion = (def: Struct) => {
+    const content = `${this.exportPrefix}declare class ${this.transformName(def.id.name)} ${this.generateStructContents(def, def.id.name, def.fields)};`;
+    return content;
+  };
   generateUnionContents = (fields: Object) => {
     if (!fields.length) {
       return '{||}';
@@ -179,7 +187,7 @@ export class ThriftFileConverter {
         )
       )
       .map(p => (p.indexOf('/') === -1 ? `./${p}` : p))
-      .map(relpath => `import * as ${path.basename(relpath)} from '${relpath}_types.js';`)
+      .map(relpath => `import * as ${path.basename(relpath)} from '${relpath}.js';`)
       .join('\n');
 
   getImportAbsPaths = () => Object.keys(this.thrift.idls).map(p => path.resolve(p));
@@ -200,22 +208,23 @@ export class ThriftFileConverter {
     debugger;
     const packPath = '\'@uber/mapstore-node/';
     const packSuffix = '_types\'';
+    const commonModuleName = this.transformName('') + hyphensToCamelCase(path.basename(this.thriftPath, '.thrift'));
     const modules = [
       ...this.generateForStructs(this.thrift.structs),
       ...this.generateForStructs(this.thrift.unions),
       ...this.generateForEnums(this.thrift.enums)
     ];
     const result = `
-type ${this.transformName('Types')} = {
+type ${commonModuleName} = {
 ${modules.join(',\n')}
 };
 
 declare module ${packPath}${path.basename(this.thriftPath, '.thrift')}${packSuffix} {
-  declare module.exports: ${this.transformName('Types')}
+  declare module.exports: ${commonModuleName}
 }
 
 declare module ${packPath}browser-thrift/${path.basename(this.thriftPath, '.thrift')}${packSuffix} {
-  declare module.exports: ${this.transformName('Types')}
+  declare module.exports: ${commonModuleName}
 }`;
     return result;
   };
