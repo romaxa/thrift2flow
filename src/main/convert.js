@@ -137,12 +137,15 @@ export class ThriftFileConverter {
 
   generateStructContents = (def: Struct, name: string, fields: Object) =>
   {
+    const importsSet = this.generateImportsTypesOnly();
     return `{
     constructor(args?: {
       ${fields ? Object.values(fields)
         .map(
           (f: Base) => {
-            return `${f.name}${this.isOptional(f) ? '?' : ''}: ${this.types.convert(f.valueType)}${this.thrift.enums[f.valueType.name] ? 'Values' : ''};`;
+            debugger;
+            const result = `${f.name}${this.isOptional(f) ? '?' : ''}: ${this.types.convert(f.valueType, importsSet)}${this.thrift.enums[f.valueType.name] ? 'Values' : ''};`;
+            return result;
           }
         )
         .join('\n') : ''}
@@ -150,7 +153,7 @@ export class ThriftFileConverter {
     ${fields ? Object.values(fields)
       .map(
         (f: Base) => {
-          return `${f.name}${this.isOptional(f) ? '?' : ''}: ${this.types.convert(f.valueType)}${this.thrift.enums[f.valueType.name] ? 'Values' : ''};`;
+          return `${f.name}${this.isOptional(f) ? '?' : ''}: ${this.types.convert(f.valueType, importsSet)}${this.thrift.enums[f.valueType.name] ? 'Values' : ''};`;
         }
 
       )
@@ -190,6 +193,22 @@ export class ThriftFileConverter {
       .map(p => (p.indexOf('/') === -1 ? `./${p}` : p))
       .map(relpath => `import * as ${path.basename(relpath)} from '${relpath}.js';`)
       .join('\n');
+
+  generateImportsTypesOnly = () =>
+    this.getImportAbsPaths()
+      .filter(p => p !== this.thriftPath)
+      .map(p =>
+        path.join(
+          path.dirname(path.relative(path.dirname(this.thriftPath), p)),
+          path.basename(p, '.thrift')
+        )
+      )
+      .map(p => (p.indexOf('/') === -1 ? `./${p}` : p))
+      .map(relpath => `${path.basename(relpath)}`)
+      .reduce((cfg, key) => {
+        cfg.add(key);
+        return cfg;
+      }, new Set());
 
   getImportAbsPaths = () => Object.keys(this.thrift.idls).map(p => path.resolve(p));
 

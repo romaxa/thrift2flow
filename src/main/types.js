@@ -60,12 +60,22 @@ export class TypeConverter {
     return '';
   }
 
-  convert = (t: BaseType): string =>
+  transformOrNot(name: string, imports?: Set<string>): string {
+    const arr = name.split('.');
+    if (arr.length > 1) {
+      if (imports.has(arr[0])) {
+        return name;
+      }
+    }
+    return this.transformName(name);
+  }
+
+  convert = (t: BaseType, imports?: Set<string>): string =>
     this.arrayType(t) ||
     this.mapType(t) ||
     this.annotation(t) ||
     TypeConverter.primitives[t.baseType] ||
-    this.transformName(t.name);
+    this.transformOrNot(t.name, imports)
 
   arrayType = (thriftValueType: BaseType) =>
     (thriftValueType instanceof ListType || thriftValueType instanceof SetType) &&
