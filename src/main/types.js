@@ -61,30 +61,32 @@ export class TypeConverter {
   }
 
   transformOrNot(name: string, imports?: Set<string>): string {
-    const arr = name.split('.');
-    if (arr.length > 1) {
-      if (imports.has(arr[0])) {
-        return name;
+    if (imports) {
+      const arr = name.split('.');
+      if (arr.length > 1) {
+        if (imports.has(arr[0])) {
+          return name;
+        }
       }
     }
     return this.transformName(name);
   }
 
   convert = (t: BaseType, imports?: Set<string>): string =>
-    this.arrayType(t) ||
-    this.mapType(t) ||
+    this.arrayType(t, imports) ||
+    this.mapType(t, imports) ||
     this.annotation(t) ||
     TypeConverter.primitives[t.baseType] ||
     this.transformOrNot(t.name, imports)
 
-  arrayType = (thriftValueType: BaseType) =>
+  arrayType = (thriftValueType: BaseType, imports?: Set<string>) =>
     (thriftValueType instanceof ListType || thriftValueType instanceof SetType) &&
-    `${this.convert(thriftValueType.valueType)}[]`;
+    `${this.convert(thriftValueType.valueType, imports)}[]`;
 
-  mapType(t: BaseType) {
+  mapType(t: BaseType, imports?: Set<string>) {
     if (t instanceof MapType) {
-      const ktype = this.convert(t.keyType);
-      const vtype = this.convert(t.valueType);
+      const ktype = this.convert(t.keyType, imports);
+      const vtype = this.convert(t.valueType, imports);
       return `{[${ktype}]: ${vtype}}`;
     }
     return null;
