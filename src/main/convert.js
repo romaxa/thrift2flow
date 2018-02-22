@@ -40,12 +40,13 @@ const thriftOptions = {
 };
 
 function hyphensToCamelCase(str) {
+debugger;
     var arr = str.split(/[_-]/);
     var newStr = "";
-    for (var i = 1; i < arr.length; i++) {
+    for (var i = 0; i < arr.length; i++) {
         newStr += arr[i].charAt(0).toUpperCase() + arr[i].slice(1);
     }
-    return arr[0] + newStr;
+    return newStr;
 }
 
 export class ThriftFileConverter {
@@ -208,7 +209,7 @@ export class ThriftFileConverter {
     debugger;
     const packPath = '\'@uber/mapstore-node/';
     const packSuffix = '_types\'';
-    const commonModuleName = this.transformName('') + hyphensToCamelCase(path.basename(this.thriftPath, '.thrift'));
+    const commonModuleName = this.transformName('') + hyphensToCamelCase(path.basename(this.thriftPath, '.thrift')) + 'Types';
     const modules = [
       ...this.generateForStructs(this.thrift.structs),
       ...this.generateForStructs(this.thrift.unions),
